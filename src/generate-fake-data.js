@@ -1,6 +1,7 @@
 import faker from "faker";
 import randomColor from "randomcolor";
 import moment from "moment";
+import { SSL_OP_CRYPTOPRO_TLSEXT_BUG } from "constants";
 
 const dateFormat = 'YYYY-MM-DDTHH:mm:ss'
 
@@ -142,7 +143,7 @@ export default function(showStartDate='2019-03-02', showEndDate='2019-03-10') {
   console.log(items)
   // 
 
-  splitTime(items)
+  splitTime(scheduleTimes)
 
   return {groups, items}
 }
@@ -150,43 +151,169 @@ export default function(showStartDate='2019-03-02', showEndDate='2019-03-10') {
 
 const splitTime = (scheduleTimes) => {
 
-  let itemColors = []
-  // [Array(2), Array(1), Array(6), Array(1), Array(5)]
-  // 0: Array(2)
-  // 0: (2) [1551480000000, 1551520000000]
-  // 1: (2) [1551560000000, 1551610000000]
-  // length: 2
-  // __proto__: Array(0)
-  // 1: Array(1)
-  // 0: (2) [1551450000000, 1552230000000]
+  let objectTimes = scheduleTimes.map( (times, index) => {
 
-  // const reducer = (accumulator, currentTimes) => {
+    return times.map(time => {
+      return {
+        group: index,
+        start: time[0],
+        end: time[1],
+        // formatedStart: time[0].format(),
+        // formatedEnd: time[1].format(),
+        color: 'blue'
+      }
+    })
 
-  //    return accumulator + currentValue
-  // }
+  })
 
-  // const splitData = scheduleTimes.reduce(reducer)
 
-  scheduleTimes = scheduleTimes.reverse()
+  console.log("objectTimes")
+  console.log(objectTimes)
 
-  for(let i = 0; i < scheduleTimes.length; i++) {
-    if (i == 0) {
-      continue
+  const itemTimes = objectTimes.flat()
+
+
+  // Array(2)
+  // 0: {start: Moment, end: Moment, formatedStart: "2019-03-02T08:00:00+09:00", formatedEnd: "2019-03-02T20:00:00+09:00", color: "blue"}
+  // 1: {start: Moment, end: Moment, formatedStart: "2019-03-03T08:00:00+09:00", formatedEnd: "2019-03-03T20:00:00+09:00", color: "blue"}
+  // 
+  // Array(1)
+  // 0: {start: Moment, end: Moment, formatedStart: "2019-03-02T00:00:00+09:00", formatedEnd: "2019-03-11T00:00:00+09:00", color: "blue"}
+
+  // Array(6)
+  // 0: {start: Moment, end: Moment, formatedStart: "2019-03-02T19:00:00+09:00", formatedEnd: "2019-03-02T22:00:00+09:00", color: "blue"}
+  // 1: {start: Moment, end: Moment, formatedStart: "2019-03-03T19:00:00+09:00", formatedEnd: "2019-03-03T22:00:00+09:00", color: "blue"}
+  // 2: {start: Moment, end: Moment, formatedStart: "2019-03-04T19:00:00+09:00", formatedEnd: "2019-03-04T22:00:00+09:00", color: "blue"}
+  // 3: {start: Moment, end: Moment, formatedStart: "2019-03-05T19:00:00+09:00", formatedEnd: "2019-03-05T22:00:00+09:00", color: "blue"}
+  // 4: {start: Moment, end: Moment, formatedStart: "2019-03-06T19:00:00+09:00", formatedEnd: "2019-03-06T22:00:00+09:00", color: "blue"}
+  // 5: {start: Moment, end: Moment, formatedStart: "2019-03-07T19:00:00+09:00", formatedEnd: "2019-03-07T22:00:00+09:00", color: "blue"}
+  // length: 6
+
+  
+
+  console.log("---------------reducer")
+  const reducer = (accumulator, currentValue) => {
+
+    console.log("typeof accumulator: " + (typeof accumulator))
+
+    let target = []
+    if (!Array.isArray(accumulator)) {
+      target.push(accumulator)
+    } else {
+      target = accumulator
     }
+    
+    console.log("-------> target: ")
+    console.log(target)
 
-    let preTimes = scheduleTimes[i - 1]
-    let currentTime = scheduleTimes[i]
 
-    currentTime.forEach( (times, index) => {
+    let result = []
+
+    target.forEach( item => {
+      // currentValue.start
+      // currentValue.end
       
+      // item          --------
+      // currentValue       -----------
+      if (currentValue.start.isAfter(item.start) && currentValue.start.isBefore(item.end)) {
+        result.push({...item, end: currentValue.start, color: 'blue'})
+        result.push({...item, start: currentValue.start, color: 'white'})
+        // 
+        result.push(currentValue)
+      }
 
+      // item            ------------------------
+      // currentValue          -----------
+      if (currentValue.start.isAfter(item.start) && currentValue.end.isBefore(item.end)) {
+        result.push({...item, end: currentValue.start, color: 'blue'})
+        result.push({...item, start: currentValue.start, end: currentValue.end, color: 'white'})
+        result.push({...item, start: currentValue.end, color: 'blue'})
+        //
+        result.push(currentValue)
+      }
+
+      // item                  ------------
+      // currentValue    -----------
+      if (currentValue.end.isAfter(item.start) && currentValue.end.isBefore(item.end)) {
+        result.push({...item, end: currentValue.end, color: 'white'})
+        result.push({...item, start: currentValue.end, color: 'blue'})
+        // 
+        result.push(currentValue)
+      }
+
+      // item         ------------
+      // currentValue                -----------
+      if (currentValue.start.isAfter(item.end)) {
+        result.push(item)
+        result.push(currentValue)
+      }
+
+      // item                         ------------
+      // currentValue  -----------
+      if (currentValue.end.isBefore(item.start)) {
+        result.push(item)
+        result.push(currentValue)
+      }
+
+      // item         ------------------------
+      // currentValue    -----------
+      if (currentValue.start.isAfter(item.start) && currentValue.end.isBefore(item.end)) {
+        result.push(item)
+        result.push(currentValue)
+      }
 
     })
 
-
+    return result
   }
 
-  
+  console.log(itemTimes.reduce(reducer))
+    
+
+
+
+
+
+  // for( let i=0; i < itemTimes.length; i++ ) {
+
+  //   let itemTime = itemTimes[i]
+
+  //   for( let j=0; j < i; j++ ) {
+      
+      
+
+  //   }
+  // }
+
+
+
+
+
+
+
+  // objectTimes.forEach((lineTime, lineIndex) => {
+    
+  //   lineTime.forEach((itemTime, itemIndex) => {
+
+  //     for(let i = 0 ; i < objectTimes - 1 ; i++) {
+
+  //     }
+
+
+  //   })
+  // })
+
+
+  // for ( let i=0; i < objectTimes.length; i++ ) {
+  //   let objectTime = objectTimes[i]
+
+  //   for ( let j=0; i < objectTime.length; i++ ) {
+  //     let obj = objectTime[j]
+  //   }
+  // }
+
+
+
 
 
 }
