@@ -57,7 +57,7 @@ export default function(showStartDate='2019-03-02', showEndDate='2019-03-10') {
   let groups = [];
   for (let i = 0; i < schedules.length; i++) {
     groups.push({
-      id: `${i + 1}`,
+      id: `${i}`,
       title: schedules[i].playlist_name,
       rightTitle: schedules[i].schedule_name,
       rightTitleKey: 'rightTitle',
@@ -118,32 +118,70 @@ export default function(showStartDate='2019-03-02', showEndDate='2019-03-10') {
   console.log(scheduleTimes)
   
 
+  const splitData = splitTime(scheduleTimes)
+
+
+  // 連続の白い部分を接続する
+  console.log("-----------------------連続の白い部分を接続する ")
+
+  const connectReducer = (accumulator, currentValue) => {
+    let target = []
+    if (!Array.isArray(accumulator)) {
+      target.push(accumulator)
+    } else {
+      target = accumulator
+    }
+
+    let lastItem = target.pop()
+    console.log("")
+    console.log("--------------------" + lastItem.group + "   " + currentValue.group)
+    console.log("lastItem    : " + JSON.stringify(lastItem))
+    console.log("currentValue: " + JSON.stringify(currentValue))
+
+
+    if(lastItem.group == currentValue.group 
+      && lastItem.color == currentValue.color && lastItem.color == "white" 
+      && lastItem.end.isSame(currentValue.start)) 
+    {
+      const newItem = {...lastItem, start: lastItem.start, end: currentValue.end}
+      target.push(newItem)
+      console.log("---connect: " + JSON.stringify(newItem))
+    } else {
+      target.push(lastItem)
+      target.push(currentValue)
+    }
+
+    return target
+  }
+
+  const data = splitData.reduce(connectReducer)
+  console.log(data)
+
+
+
   // {id: "0", group: "2", title: "time_0", start: 1550770000000, end: 1550790921150, …}
   let items = []
-  let count = 0 
-  scheduleTimes.forEach( (times, i ) => {
-    times.forEach((time, j) => {
-      items.push({
-        id: `${count}`, 
-        group: `${i + 1}`, 
-        title: `time_${i}_${j}`, 
-        start: Math.floor(time[0].valueOf() / 10000000) * 10000000, 
-        end: Math.floor(time[1].valueOf() / 10000000) * 10000000,
+
+  data.forEach( (time, i ) => {
+
+    items.push({
+        id: `${i}`, 
+        group: time.group, 
+        title: `${time.start.format()}--${time.end.format()}`, 
+        start: time.start, // Math.floor(time.start.valueOf() / 10000000) * 10000000, 
+        end:   time.end,  // Math.floor(time.end.valueOf() / 10000000) * 10000000,
         itemProps: {
           "data-tip": faker.hacker.phrase()
         },
-        bgColor: "#a8c9ff",
+        bgColor:  time.color == "blue" ? "#a8c9ff" : "#eee",
       })
-
-      count = count + 1
-    })
-
+      
   })
 
   console.log(items)
   // 
 
-  splitTime(scheduleTimes)
+  
 
   return {groups, items}
 }
@@ -277,147 +315,5 @@ const splitTime = (scheduleTimes) => {
   console.log("---> reduce result: ")
   console.log(splitData)
   
-
-    
-
-
-
-
-
-  // for( let i=0; i < itemTimes.length; i++ ) {
-
-  //   let itemTime = itemTimes[i]
-
-  //   for( let j=0; j < i; j++ ) {
-      
-      
-
-  //   }
-  // }
-
-
-
-
-
-
-
-  // objectTimes.forEach((lineTime, lineIndex) => {
-    
-  //   lineTime.forEach((itemTime, itemIndex) => {
-
-  //     for(let i = 0 ; i < objectTimes - 1 ; i++) {
-
-  //     }
-
-
-  //   })
-  // })
-
-
-  // for ( let i=0; i < objectTimes.length; i++ ) {
-  //   let objectTime = objectTimes[i]
-
-  //   for ( let j=0; i < objectTime.length; i++ ) {
-  //     let obj = objectTime[j]
-  //   }
-  // }
-
-
-
-
-
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-export const fakeData =  function(groupCount = 5, itemCount = 10, daysInPast = 30) {
-  let randomSeed = Math.floor(Math.random() * 1000);
-  let groups = [];
-  for (let i = 0; i < groupCount; i++) {
-    groups.push({
-      id: `${i + 1}`,
-      title: `Title_${i + 1}`,
-      rightTitle: `rightTitle_${i + 1}`,
-      bgColor: randomColor({ luminosity: "light", seed: randomSeed + i })
-    });
-
-    console.log(randomColor({ luminosity: "light", seed: randomSeed + i }))
-  }
-
-  let items = [];
-  for (let i = 0; i < itemCount; i++) {
-    const startDate =
-      faker.date.recent(daysInPast).valueOf() + daysInPast * 0.3 * 86400 * 1000;
-    const startValue =
-      Math.floor(moment(startDate).valueOf() / 10000000) * 10000000;
-    const endValue = moment(
-      startDate + faker.random.number({ min: 2, max: 20 }) * 15 * 600 * 1000
-    ).valueOf();
-
-    // console.log("---------------: " + i)
-    // console.log("startValue: " + moment(startValue).format(dateFormat))
-    // console.log("endValue: " + moment(endValue).format(dateFormat))
-
-    items.push({
-      id: i + "",
-      group: faker.random.number({ min: 1, max: groups.length }) + "",
-      title: `time_${i}`,  //faker.hacker.phrase(),
-      start: startValue,
-      end: endValue,
-      // canMove: startValue > new Date().getTime(),
-      // canResize:
-      //   startValue > new Date().getTime()
-      //     ? endValue > new Date().getTime()
-      //       ? "both"
-      //       : "left"
-      //     : endValue > new Date().getTime()
-      //       ? "right"
-      //       : false,
-
-
-      // className:
-      //   moment(startDate).day() === 6 || moment(startDate).day() === 0
-      //     ? "item-weekend"
-      //     : "",
-      // bgColor: randomColor({
-      //   luminosity: "light",
-      //   seed: randomSeed + i,
-      //   format: "rgba",
-      //   alpha: 0.6
-      // }),
-      // selectedBgColor: randomColor({
-      //   luminosity: "light",
-      //   seed: randomSeed + i,
-      //   format: "rgba",
-      //   alpha: 1
-      // }),
-      // color: randomColor({ luminosity: "dark", seed: randomSeed + i }),
-      itemProps: {
-        "data-tip": faker.hacker.phrase()
-      }
-    });
-  }
-
-  items = items.sort((a, b) => b - a);
-  
-
-  return { groups, items };
+  return splitData
 }
