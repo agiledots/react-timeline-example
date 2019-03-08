@@ -1,6 +1,6 @@
 import React from "react";
 import { render } from "react-dom";
-import CustomTimeline from "./CustomTimeline";
+import CustomTimeline from "./src/CustomTimeline";
 import 'react-calendar-timeline/lib/Timeline.css'
 
 const App = () => (
@@ -10,5 +10,3 @@ const App = () => (
 );
 
 render(<App />, document.getElementById("root"));
-
-export default App;
