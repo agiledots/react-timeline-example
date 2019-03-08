@@ -31,22 +31,22 @@ const schedules = [
     available_time_from: '19:00:00',
     available_time_to: '22:00:00',
   },
-  {
-    schedule_name: 'schedule_name_004',
-    playlist_name: 'playlist_name_004',
-    available_date_from: '2019-03-06',
-    available_date_to: '2019-03-10',
-    available_time_from: '',
-    available_time_to: '',
-  },
-  {
-    schedule_name: 'schedule_name_004',
-    playlist_name: 'playlist_name_004',
-    available_date_from: '2019-03-06',
-    available_date_to: '',
-    available_time_from: '14:00:00',
-    available_time_to: '16:00:00',
-  },
+  // {
+  //   schedule_name: 'schedule_name_004',
+  //   playlist_name: 'playlist_name_004',
+  //   available_date_from: '2019-03-06',
+  //   available_date_to: '2019-03-10',
+  //   available_time_from: '',
+  //   available_time_to: '',
+  // },
+  // {
+  //   schedule_name: 'schedule_name_005',
+  //   playlist_name: 'playlist_name_005',
+  //   available_date_from: '2019-03-06',
+  //   available_date_to: '',
+  //   available_time_from: '14:00:00',
+  //   available_time_to: '16:00:00',
+  // },
 ]
 
 
@@ -173,28 +173,7 @@ const splitTime = (scheduleTimes) => {
   const itemTimes = objectTimes.flat()
 
 
-  // Array(2)
-  // 0: {start: Moment, end: Moment, formatedStart: "2019-03-02T08:00:00+09:00", formatedEnd: "2019-03-02T20:00:00+09:00", color: "blue"}
-  // 1: {start: Moment, end: Moment, formatedStart: "2019-03-03T08:00:00+09:00", formatedEnd: "2019-03-03T20:00:00+09:00", color: "blue"}
-  // 
-  // Array(1)
-  // 0: {start: Moment, end: Moment, formatedStart: "2019-03-02T00:00:00+09:00", formatedEnd: "2019-03-11T00:00:00+09:00", color: "blue"}
-
-  // Array(6)
-  // 0: {start: Moment, end: Moment, formatedStart: "2019-03-02T19:00:00+09:00", formatedEnd: "2019-03-02T22:00:00+09:00", color: "blue"}
-  // 1: {start: Moment, end: Moment, formatedStart: "2019-03-03T19:00:00+09:00", formatedEnd: "2019-03-03T22:00:00+09:00", color: "blue"}
-  // 2: {start: Moment, end: Moment, formatedStart: "2019-03-04T19:00:00+09:00", formatedEnd: "2019-03-04T22:00:00+09:00", color: "blue"}
-  // 3: {start: Moment, end: Moment, formatedStart: "2019-03-05T19:00:00+09:00", formatedEnd: "2019-03-05T22:00:00+09:00", color: "blue"}
-  // 4: {start: Moment, end: Moment, formatedStart: "2019-03-06T19:00:00+09:00", formatedEnd: "2019-03-06T22:00:00+09:00", color: "blue"}
-  // 5: {start: Moment, end: Moment, formatedStart: "2019-03-07T19:00:00+09:00", formatedEnd: "2019-03-07T22:00:00+09:00", color: "blue"}
-  // length: 6
-
-  
-
-  console.log("---------------reducer")
   const reducer = (accumulator, currentValue) => {
-
-    console.log("typeof accumulator: " + (typeof accumulator))
 
     let target = []
     if (!Array.isArray(accumulator)) {
@@ -203,8 +182,11 @@ const splitTime = (scheduleTimes) => {
       target = accumulator
     }
     
+    console.log("")
     console.log("-------> target: ")
     console.log(target)
+    console.log("-------> currentValue: ")
+    console.log(JSON.stringify(currentValue))
 
 
     let result = []
@@ -215,59 +197,73 @@ const splitTime = (scheduleTimes) => {
       
       // item          --------
       // currentValue       -----------
-      if (currentValue.start.isAfter(item.start) && currentValue.start.isBefore(item.end)) {
+      if (item.color == 'blue' && currentValue.start.isAfter(item.start) && currentValue.start.isBefore(item.end)) {
         result.push({...item, end: currentValue.start, color: 'blue'})
         result.push({...item, start: currentValue.start, color: 'white'})
         // 
-        result.push(currentValue)
+        // result.push(currentValue)
       }
 
       // item            ------------------------
       // currentValue          -----------
-      if (currentValue.start.isAfter(item.start) && currentValue.end.isBefore(item.end)) {
+      if (item.color == 'blue' && currentValue.start.isAfter(item.start) && currentValue.end.isBefore(item.end)) {
         result.push({...item, end: currentValue.start, color: 'blue'})
         result.push({...item, start: currentValue.start, end: currentValue.end, color: 'white'})
         result.push({...item, start: currentValue.end, color: 'blue'})
         //
-        result.push(currentValue)
+        // result.push(currentValue)
       }
+
+      // item               -----------
+      // currentValue  ------------------------
+      if (item.color == 'blue' && currentValue.start.isBefore(item.start) && currentValue.end.isAfter(item.end)) {
+        result.push({...item, color: 'white'})
+
+        // result.push(currentValue)
+      }
+
 
       // item                  ------------
       // currentValue    -----------
-      if (currentValue.end.isAfter(item.start) && currentValue.end.isBefore(item.end)) {
+      if (item.color == 'blue' && currentValue.end.isAfter(item.start) && currentValue.end.isBefore(item.end)) {
         result.push({...item, end: currentValue.end, color: 'white'})
         result.push({...item, start: currentValue.end, color: 'blue'})
         // 
-        result.push(currentValue)
+        // result.push(currentValue)
       }
 
       // item         ------------
       // currentValue                -----------
-      if (currentValue.start.isAfter(item.end)) {
+      if (item.color == 'blue' && currentValue.start.isAfter(item.end)) {
         result.push(item)
-        result.push(currentValue)
+
+        // result.push(currentValue)
       }
 
       // item                         ------------
       // currentValue  -----------
-      if (currentValue.end.isBefore(item.start)) {
+      if (item.color == 'blue' && currentValue.end.isBefore(item.start)) {
         result.push(item)
-        result.push(currentValue)
+
+        // result.push(currentValue)
       }
 
-      // item         ------------------------
-      // currentValue    -----------
-      if (currentValue.start.isAfter(item.start) && currentValue.end.isBefore(item.end)) {
-        result.push(item)
-        result.push(currentValue)
-      }
 
     })
+
+    result.push(currentValue)
 
     return result
   }
 
-  console.log(itemTimes.reduce(reducer))
+
+  const splitData = itemTimes.reduce(reducer)
+  
+  console.log("")
+  console.log("---> reduce result: ")
+  console.log(splitData)
+  
+
     
 
 
