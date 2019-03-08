@@ -31,22 +31,22 @@ const schedules = [
     available_time_from: '19:00:00',
     available_time_to: '22:00:00',
   },
-  // {
-  //   schedule_name: 'schedule_name_004',
-  //   playlist_name: 'playlist_name_004',
-  //   available_date_from: '2019-03-06',
-  //   available_date_to: '2019-03-10',
-  //   available_time_from: '',
-  //   available_time_to: '',
-  // },
-  // {
-  //   schedule_name: 'schedule_name_005',
-  //   playlist_name: 'playlist_name_005',
-  //   available_date_from: '2019-03-06',
-  //   available_date_to: '',
-  //   available_time_from: '14:00:00',
-  //   available_time_to: '16:00:00',
-  // },
+  {
+    schedule_name: 'schedule_name_004',
+    playlist_name: 'playlist_name_004',
+    available_date_from: '2019-03-06',
+    available_date_to: '2019-03-10',
+    available_time_from: '',
+    available_time_to: '',
+  },
+  {
+    schedule_name: 'schedule_name_005',
+    playlist_name: 'playlist_name_005',
+    available_date_from: '2019-03-06',
+    available_date_to: '',
+    available_time_from: '14:00:00',
+    available_time_to: '16:00:00',
+  },
 ]
 
 
@@ -194,60 +194,74 @@ const splitTime = (scheduleTimes) => {
     target.forEach( item => {
       // currentValue.start
       // currentValue.end
+
+      if(item.color == 'blue' && item.group != currentValue.group)  {
+
+          // item          --------
+          // currentValue       -----------
+          if (currentValue.start.isAfter(item.start) && currentValue.start.isBefore(item.end)
+            && currentValue.end.isAfter(item.end)
+          ) {
+            result.push({...item, end: currentValue.start, color: 'blue'})
+            result.push({...item, start: currentValue.start, color: 'white'})
+            // 
+            // result.push(currentValue)
+          }
+
+          // item            ------------------------
+          // currentValue          -----------
+          if (currentValue.start.isAfter(item.start) && currentValue.end.isBefore(item.end) 
+            && currentValue.end.isBefore(item.end)
+          ) {
+            result.push({...item, end: currentValue.start, color: 'blue'})
+            result.push({...item, start: currentValue.start, end: currentValue.end, color: 'white'})
+            result.push({...item, start: currentValue.end, color: 'blue'})
+            //
+            // result.push(currentValue)
+          }
+
+          // item               -----------
+          // currentValue  ------------------------
+          if (currentValue.start.isBefore(item.start) && currentValue.end.isAfter(item.end)) {
+            result.push({...item, color: 'white'})
+
+            // result.push(currentValue)
+          }
+
+
+          // item                  ------------
+          // currentValue    -----------
+          if (currentValue.end.isAfter(item.start) && currentValue.end.isBefore(item.end)
+            && currentValue.start.isBefore(item.start)
+          ) {
+            result.push({...item, end: currentValue.end, color: 'white'})
+            result.push({...item, start: currentValue.end, color: 'blue'})
+            // 
+            // result.push(currentValue)
+          }
+
+          // item         ------------
+          // currentValue                -----------
+          if (currentValue.start.isAfter(item.end)) {
+            result.push(item)
+
+            // result.push(currentValue)
+          }
+
+          // item                         ------------
+          // currentValue  -----------
+          if (currentValue.end.isBefore(item.start)) {
+            result.push(item)
+
+            // result.push(currentValue)
+          }
+
+      } else {
+        result.push(item)
+      }
       
-      // item          --------
-      // currentValue       -----------
-      if (item.color == 'blue' && currentValue.start.isAfter(item.start) && currentValue.start.isBefore(item.end)) {
-        result.push({...item, end: currentValue.start, color: 'blue'})
-        result.push({...item, start: currentValue.start, color: 'white'})
-        // 
-        // result.push(currentValue)
-      }
 
-      // item            ------------------------
-      // currentValue          -----------
-      if (item.color == 'blue' && currentValue.start.isAfter(item.start) && currentValue.end.isBefore(item.end)) {
-        result.push({...item, end: currentValue.start, color: 'blue'})
-        result.push({...item, start: currentValue.start, end: currentValue.end, color: 'white'})
-        result.push({...item, start: currentValue.end, color: 'blue'})
-        //
-        // result.push(currentValue)
-      }
-
-      // item               -----------
-      // currentValue  ------------------------
-      if (item.color == 'blue' && currentValue.start.isBefore(item.start) && currentValue.end.isAfter(item.end)) {
-        result.push({...item, color: 'white'})
-
-        // result.push(currentValue)
-      }
-
-
-      // item                  ------------
-      // currentValue    -----------
-      if (item.color == 'blue' && currentValue.end.isAfter(item.start) && currentValue.end.isBefore(item.end)) {
-        result.push({...item, end: currentValue.end, color: 'white'})
-        result.push({...item, start: currentValue.end, color: 'blue'})
-        // 
-        // result.push(currentValue)
-      }
-
-      // item         ------------
-      // currentValue                -----------
-      if (item.color == 'blue' && currentValue.start.isAfter(item.end)) {
-        result.push(item)
-
-        // result.push(currentValue)
-      }
-
-      // item                         ------------
-      // currentValue  -----------
-      if (item.color == 'blue' && currentValue.end.isBefore(item.start)) {
-        result.push(item)
-
-        // result.push(currentValue)
-      }
-
+      
 
     })
 
