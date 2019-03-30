@@ -1,9 +1,4 @@
-import faker from "faker";
-import randomColor from "randomcolor";
 import moment from "moment";
-import { SSL_OP_CRYPTOPRO_TLSEXT_BUG } from "constants";
-
-const dateFormat = 'YYYY-MM-DDTHH:mm:ss'
 
 const schedules = [
   {
@@ -57,9 +52,11 @@ const schedules = [
 ]
 
 
-// ======================================
-// 连接被分割的白色区域
-// ======================================
+/**
+ * 连接被分割的白色区域
+ * @param {已经计算出来的结果} accumulator 
+ * @param {需要计算的项目} currentValue 
+ */
 const connectReducer = (accumulator, currentValue) => {
   let target = []
   if (!Array.isArray(accumulator)) {
@@ -69,10 +66,6 @@ const connectReducer = (accumulator, currentValue) => {
   }
 
   let lastItem = target.pop()
-  // console.log("")
-  // console.log("--------------------" + lastItem.group + "   " + currentValue.group)
-  // console.log("lastItem    : " + JSON.stringify(lastItem))
-  // console.log("currentValue: " + JSON.stringify(currentValue))
 
   if (lastItem.group == currentValue.group
     && lastItem.color == currentValue.color && lastItem.color == "white"
@@ -205,28 +198,16 @@ const splitTime = (scheduleTimes) => {
   return itemTimes.reduce(splitTimereducer)
 }
 
-
 /**
- * 数据计算
- * @param {*} 显示开始日期
- * @param {*} 显示结束日期
+ * 根据原始schedule数据，计算各个时刻的schedule时间片段
+ * @param {schdule数据} schedules 
+ * @param {显示的开始日期} show_start_date 
+ * @param {显示的结束日期} show_end_date 
  */
-export default function (show_start_date = '2019-04-01', show_end_date = '2019-04-30') {
-  let groups = [];
-  for (let i = 0; i < schedules.length; i++) {
-    groups.push({
-      id: `${i}`,
-      title: schedules[i].playlist_name,
-      rightTitle: schedules[i].schedule_name,
-      rightTitleKey: 'rightTitle',
-      tip: 'additional information',
-      bgColor: '#f00'
-    });
-  }
+const detailTimes = (schedules, show_start_date = '2019-04-01', show_end_date = '2019-04-30') => {
 
-  let scheduleTimes = []
+  return schedules.map((schedule) => {
 
-  schedules.forEach((schedule) => {
     let { available_date_from, available_date_to, available_time_from, available_time_to } = schedule
 
     // 期間なしの場合、処理しやすい為、終了日付が大きな値で固定
@@ -245,10 +226,10 @@ export default function (show_start_date = '2019-04-01', show_end_date = '2019-0
       // 连续的时间段
       let times = []
       times.push([startTime, endTime])
-      scheduleTimes.push(times)
 
-    } else {
-      // 时刻有设置
+      return times
+
+    } else { // 时刻有设置
 
       // 连续的时间段
       let times = []
@@ -275,43 +256,63 @@ export default function (show_start_date = '2019-04-01', show_end_date = '2019-0
         startDate = startDate.add(1, 'day')
       }
 
-      scheduleTimes.push(times)
+      return times
     }
-
   })
 
+}
 
+
+
+/**
+ * timeline数据计算与显示
+ * @param {*} 显示开始日期
+ * @param {*} 显示结束日期
+ */
+export default function () {
+  let groups = [];
+  for (let i = 0; i < schedules.length; i++) {
+    groups.push({
+      id: `${i}`,
+      title: schedules[i].playlist_name,
+      rightTitle: schedules[i].schedule_name,
+      rightTitleKey: 'rightTitle',
+      tip: 'additional information',
+      bgColor: '#f00'
+    });
+  }
+
+  // 根据原始schedule数据，计算各个时刻的schedule时间片段
   // 没有去重的，播放时间段
-  console.log("没有去重的，播放时间段: scheduleTimes")
+  console.log("没有去重的，播放时间段")
+  const scheduleTimes = detailTimes(schedules, '2019-04-01', '2019-05-02')
   console.log(scheduleTimes)
 
 
+  // 划分时间片段，标记白蓝色
+  console.log("标记白蓝时间段")
   const splitData = splitTime(scheduleTimes)
-
-  console.log("标记白蓝时间段: splitData")
   console.log(splitData)
 
 
-  console.log("-----------------------連続の白い部分を接続する ")
+  // 将连续的白色时间片段合并
   const data = splitData.reduce(connectReducer)
   console.log(data)
 
 
-
-  // {id: "0", group: "2", title: "time_0", start: 1550770000000, end: 1550790921150, …}
+  // 准备timeline插件显示的数据
   let items = []
-
   data.forEach((time, i) => {
+
+    const title = `${time.start.format()}--${time.end.format()}`
 
     items.push({
       id: `${i}`,
       group: time.group,
-      title: `${time.start.format()}--${time.end.format()}`,
-      start: time.start, // Math.floor(time.start.valueOf() / 10000000) * 10000000, 
-      end: time.end,  // Math.floor(time.end.valueOf() / 10000000) * 10000000,
-      itemProps: {
-        "data-tip": faker.hacker.phrase()
-      },
+      title: title,
+      start: time.start, 
+      end: time.end,
+      itemProps: { "data-tip": title },
       bgColor: time.color == "blue" ? "#a8c9ff" : "#eee",
     })
 
@@ -320,9 +321,5 @@ export default function (show_start_date = '2019-04-01', show_end_date = '2019-0
   console.log(items)
   // 
 
-
-
   return { groups, items }
 }
-
-
