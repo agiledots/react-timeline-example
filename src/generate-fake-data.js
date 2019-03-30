@@ -5,21 +5,20 @@ import { SSL_OP_CRYPTOPRO_TLSEXT_BUG } from "constants";
 
 const dateFormat = 'YYYY-MM-DDTHH:mm:ss'
 
-
 const schedules = [
   {
     schedule_name: 'schedule_name_001',
     playlist_name: 'playlist_name_001',
-    available_date_from: '2019-03-01',
-    available_date_to: '2019-03-03',
+    available_date_from: '2019-04-01',
+    available_date_to: '2019-04-03',
     available_time_from: '08:00:00',
     available_time_to: '20:00:00',
   },
   {
     schedule_name: 'schedule_name_002',
     playlist_name: 'playlist_name_002',
-    available_date_from: '2019-03-02',
-    available_date_to: '2019-03-19',
+    available_date_from: '2019-04-02',
+    available_date_to: '2019-04-19',
     available_time_from: '',
     available_time_to: '',
   },
@@ -27,33 +26,192 @@ const schedules = [
     schedule_name: 'schedule_name_003',
     playlist_name: 'playlist_name_003',
     available_date_from: '2019-02-28',
-    available_date_to: '2019-03-07',
+    available_date_to: '2019-04-07',
     available_time_from: '19:00:00',
     available_time_to: '22:00:00',
   },
   {
     schedule_name: 'schedule_name_004',
     playlist_name: 'playlist_name_004',
-    available_date_from: '2019-03-06',
-    available_date_to: '2019-03-10',
+    available_date_from: '2019-04-06',
+    available_date_to: '2019-04-10',
     available_time_from: '',
     available_time_to: '',
   },
   {
     schedule_name: 'schedule_name_005',
     playlist_name: 'playlist_name_005',
-    available_date_from: '2019-03-06',
+    available_date_from: '2019-04-06',
     available_date_to: '',
+    available_time_from: '14:00:00',
+    available_time_to: '16:00:00',
+  },
+  {
+    schedule_name: 'schedule_name_006',
+    playlist_name: 'playlist_name_006',
+    available_date_from: '2019-04-16',
+    available_date_to: '2019-04-26',
     available_time_from: '14:00:00',
     available_time_to: '16:00:00',
   },
 ]
 
 
-const timeline = (value) =>{ return value} // { return Math.floor(value.valueOf() / 10000000) * 10000000;  }
+// ======================================
+// 连接被分割的白色区域
+// ======================================
+const connectReducer = (accumulator, currentValue) => {
+  let target = []
+  if (!Array.isArray(accumulator)) {
+    target.push(accumulator)
+  } else {
+    target = accumulator
+  }
+
+  let lastItem = target.pop()
+  // console.log("")
+  // console.log("--------------------" + lastItem.group + "   " + currentValue.group)
+  // console.log("lastItem    : " + JSON.stringify(lastItem))
+  // console.log("currentValue: " + JSON.stringify(currentValue))
+
+  if (lastItem.group == currentValue.group
+    && lastItem.color == currentValue.color && lastItem.color == "white"
+    && lastItem.end.isSame(currentValue.start)) {
+    const newItem = { ...lastItem, start: lastItem.start, end: currentValue.end }
+    target.push(newItem)
+  } else {
+    target.push(lastItem)
+    target.push(currentValue)
+  }
+
+  return target
+}
 
 
-export default function(showStartDate='2019-03-02', showEndDate='2019-03-10') {
+/**
+ * 将重复的时间分割，并且表示白色和蓝色区域
+ * @param {已经处理好的结果} accumulator 
+ * @param {下一个待处理的项目} currentValue 
+ */
+const splitTimereducer = (accumulator, currentValue) => {
+
+  let target = []
+  if (!Array.isArray(accumulator)) {
+    target.push(accumulator)
+  } else {
+    target = accumulator
+  }
+
+  // 
+  let result = []
+
+  target.forEach(item => {
+    // currentValue.start
+    // currentValue.end
+
+    if (item.color == 'blue' && item.group != currentValue.group) {
+
+      // item          --------
+      // currentValue       -----------
+      if (currentValue.start.isAfter(item.start) && currentValue.start.isBefore(item.end)
+        && currentValue.end.isAfter(item.end)
+      ) {
+        result.push({ ...item, end: currentValue.start, color: 'blue' })
+        result.push({ ...item, start: currentValue.start, color: 'white' })
+      }
+
+      // item            ------------------------
+      // currentValue          -----------
+      if (currentValue.start.isAfter(item.start) && currentValue.end.isBefore(item.end)
+        && currentValue.end.isBefore(item.end)
+      ) {
+        result.push({ ...item, end: currentValue.start, color: 'blue' })
+        result.push({ ...item, start: currentValue.start, end: currentValue.end, color: 'white' })
+        result.push({ ...item, start: currentValue.end, color: 'blue' })
+        //
+        // result.push(currentValue)
+      }
+
+      // item               -----------
+      // currentValue  ------------------------
+      if (currentValue.start.isBefore(item.start) && currentValue.end.isAfter(item.end)) {
+        result.push({ ...item, color: 'white' })
+
+        // result.push(currentValue)
+      }
+
+
+      // item                  ------------
+      // currentValue    -----------
+      if (currentValue.end.isAfter(item.start) && currentValue.end.isBefore(item.end)
+        && currentValue.start.isBefore(item.start)
+      ) {
+        result.push({ ...item, end: currentValue.end, color: 'white' })
+        result.push({ ...item, start: currentValue.end, color: 'blue' })
+        // 
+        // result.push(currentValue)
+      }
+
+      // item         ------------
+      // currentValue                -----------
+      if (currentValue.start.isSameOrAfter(item.end)) {
+        result.push(item)
+      }
+
+      // item                         ------------
+      // currentValue  -----------
+      if (currentValue.end.isSameOrBefore(item.start)) {
+        result.push(item)
+      }
+
+      // 完全重合
+      // item           -----------
+      // currentValue   -----------
+      if (currentValue.start.isSame(item.start) && currentValue.end.isSame(item.end)) {
+        result.push({ ...item, color: 'white' })
+      }
+
+
+    } else {
+      result.push(item)
+    }
+  })
+
+  result.push(currentValue)
+
+  return result
+}
+
+
+/**
+ * 将有重复的时间段分割，并且标记白色或蓝色
+ * @param {*} scheduleTimes 
+ */
+const splitTime = (scheduleTimes) => {
+
+  let objectTimes = scheduleTimes.map((times, index) => {
+    return times.map(time => {
+      return {
+        group: index,
+        start: time[0],
+        end: time[1],
+        color: 'blue'
+      }
+    })
+  })
+
+  const itemTimes = objectTimes.flat()
+
+  return itemTimes.reduce(splitTimereducer)
+}
+
+
+/**
+ * 数据计算
+ * @param {*} 显示开始日期
+ * @param {*} 显示结束日期
+ */
+export default function (show_start_date = '2019-04-01', show_end_date = '2019-04-30') {
   let groups = [];
   for (let i = 0; i < schedules.length; i++) {
     groups.push({
@@ -68,45 +226,52 @@ export default function(showStartDate='2019-03-02', showEndDate='2019-03-10') {
 
   let scheduleTimes = []
 
-  schedules.forEach( (schedule, index) => {
+  schedules.forEach((schedule) => {
     let { available_date_from, available_date_to, available_time_from, available_time_to } = schedule
 
     // 期間なしの場合、処理しやすい為、終了日付が大きな値で固定
     available_date_to = available_date_to || '2030-01-01'
 
     // 開始時間は大きな方、終了時間は小さい方
-    available_date_from = available_date_from < showStartDate ? showStartDate : available_date_from
-    available_date_to  = available_date_to < showEndDate ? available_date_to : showEndDate
+    available_date_from = available_date_from < show_start_date ? show_start_date : available_date_from
+    available_date_to = available_date_to < show_end_date ? available_date_to : show_end_date
 
-    console.log("  ")
-    console.log("--> index: " + index + " available_date_from: " + available_date_from + " available_date_to: " + available_date_to + " available_time_from: " + available_time_from + " available_time_to: " + available_time_to)
 
-    if( ! (available_time_from && available_time_to) ) {
-      // 時刻設定なし
-
+    if (!(available_time_from && available_time_to)) {
+      // 没有设置时刻
       const startTime = moment(available_date_from)
       const endTime = moment(available_date_to).add(1, 'day')
-      
+
+      // 连续的时间段
       let times = []
-      times.push([timeline(startTime), timeline(endTime)])
+      times.push([startTime, endTime])
       scheduleTimes.push(times)
 
     } else {
-      // 時刻設定あり
+      // 时刻有设置
+
+      // 连续的时间段
       let times = []
+
+      // 开始日期
       let startDate = moment(available_date_from)
 
-      while( startDate.isSameOrBefore(moment(available_date_to)) ) {
+      // 以 开始日期--结束日期 之间的天数进行循环，计算出每天播放的时间段
+      while (startDate.isSameOrBefore(moment(available_date_to))) {
 
-        console.log("moment(available_date_to):"  + moment(available_date_to).format())
+        console.log("moment(available_date_to):" + moment(available_date_to).format())
 
         const day = startDate.format('YYYY-MM-DD')
+
+        // 当天的播放的开始时刻
         const startTime = moment(`${day} ${available_time_from}`)
+        // 当天的播放的结束时刻
         const endTime = moment(`${day} ${available_time_to}`)
 
-        times.push([timeline(startTime), timeline(endTime)])
 
-        // 日付 + 1day
+        times.push([startTime, endTime])
+
+        // 日付 + 1day，继续下一天的处理
         startDate = startDate.add(1, 'day')
       }
 
@@ -115,45 +280,19 @@ export default function(showStartDate='2019-03-02', showEndDate='2019-03-10') {
 
   })
 
+
+  // 没有去重的，播放时间段
+  console.log("没有去重的，播放时间段: scheduleTimes")
   console.log(scheduleTimes)
-  
+
 
   const splitData = splitTime(scheduleTimes)
 
+  console.log("标记白蓝时间段: splitData")
+  console.log(splitData)
 
-  // 連続の白い部分を接続する
+
   console.log("-----------------------連続の白い部分を接続する ")
-
-  const connectReducer = (accumulator, currentValue) => {
-    let target = []
-    if (!Array.isArray(accumulator)) {
-      target.push(accumulator)
-    } else {
-      target = accumulator
-    }
-
-    let lastItem = target.pop()
-    console.log("")
-    console.log("--------------------" + lastItem.group + "   " + currentValue.group)
-    console.log("lastItem    : " + JSON.stringify(lastItem))
-    console.log("currentValue: " + JSON.stringify(currentValue))
-
-
-    if(lastItem.group == currentValue.group 
-      && lastItem.color == currentValue.color && lastItem.color == "white" 
-      && lastItem.end.isSame(currentValue.start)) 
-    {
-      const newItem = {...lastItem, start: lastItem.start, end: currentValue.end}
-      target.push(newItem)
-      console.log("---connect: " + JSON.stringify(newItem))
-    } else {
-      target.push(lastItem)
-      target.push(currentValue)
-    }
-
-    return target
-  }
-
   const data = splitData.reduce(connectReducer)
   console.log(data)
 
@@ -162,158 +301,28 @@ export default function(showStartDate='2019-03-02', showEndDate='2019-03-10') {
   // {id: "0", group: "2", title: "time_0", start: 1550770000000, end: 1550790921150, …}
   let items = []
 
-  data.forEach( (time, i ) => {
+  data.forEach((time, i) => {
 
     items.push({
-        id: `${i}`, 
-        group: time.group, 
-        title: `${time.start.format()}--${time.end.format()}`, 
-        start: time.start, // Math.floor(time.start.valueOf() / 10000000) * 10000000, 
-        end:   time.end,  // Math.floor(time.end.valueOf() / 10000000) * 10000000,
-        itemProps: {
-          "data-tip": faker.hacker.phrase()
-        },
-        bgColor:  time.color == "blue" ? "#a8c9ff" : "#eee",
-      })
-      
+      id: `${i}`,
+      group: time.group,
+      title: `${time.start.format()}--${time.end.format()}`,
+      start: time.start, // Math.floor(time.start.valueOf() / 10000000) * 10000000, 
+      end: time.end,  // Math.floor(time.end.valueOf() / 10000000) * 10000000,
+      itemProps: {
+        "data-tip": faker.hacker.phrase()
+      },
+      bgColor: time.color == "blue" ? "#a8c9ff" : "#eee",
+    })
+
   })
 
   console.log(items)
   // 
 
-  
 
-  return {groups, items}
+
+  return { groups, items }
 }
 
 
-const splitTime = (scheduleTimes) => {
-
-  let objectTimes = scheduleTimes.map( (times, index) => {
-
-    return times.map(time => {
-      return {
-        group: index,
-        start: time[0],
-        end: time[1],
-        // formatedStart: time[0].format(),
-        // formatedEnd: time[1].format(),
-        color: 'blue'
-      }
-    })
-
-  })
-
-
-  console.log("objectTimes")
-  console.log(objectTimes)
-
-  const itemTimes = objectTimes.flat()
-
-
-  const reducer = (accumulator, currentValue) => {
-
-    let target = []
-    if (!Array.isArray(accumulator)) {
-      target.push(accumulator)
-    } else {
-      target = accumulator
-    }
-    
-    console.log("")
-    console.log("-------> target: ")
-    console.log(target)
-    console.log("-------> currentValue: ")
-    console.log(JSON.stringify(currentValue))
-
-
-    let result = []
-
-    target.forEach( item => {
-      // currentValue.start
-      // currentValue.end
-
-      if(item.color == 'blue' && item.group != currentValue.group)  {
-
-          // item          --------
-          // currentValue       -----------
-          if (currentValue.start.isAfter(item.start) && currentValue.start.isBefore(item.end)
-            && currentValue.end.isAfter(item.end)
-          ) {
-            result.push({...item, end: currentValue.start, color: 'blue'})
-            result.push({...item, start: currentValue.start, color: 'white'})
-            // 
-            // result.push(currentValue)
-          }
-
-          // item            ------------------------
-          // currentValue          -----------
-          if (currentValue.start.isAfter(item.start) && currentValue.end.isBefore(item.end) 
-            && currentValue.end.isBefore(item.end)
-          ) {
-            result.push({...item, end: currentValue.start, color: 'blue'})
-            result.push({...item, start: currentValue.start, end: currentValue.end, color: 'white'})
-            result.push({...item, start: currentValue.end, color: 'blue'})
-            //
-            // result.push(currentValue)
-          }
-
-          // item               -----------
-          // currentValue  ------------------------
-          if (currentValue.start.isBefore(item.start) && currentValue.end.isAfter(item.end)) {
-            result.push({...item, color: 'white'})
-
-            // result.push(currentValue)
-          }
-
-
-          // item                  ------------
-          // currentValue    -----------
-          if (currentValue.end.isAfter(item.start) && currentValue.end.isBefore(item.end)
-            && currentValue.start.isBefore(item.start)
-          ) {
-            result.push({...item, end: currentValue.end, color: 'white'})
-            result.push({...item, start: currentValue.end, color: 'blue'})
-            // 
-            // result.push(currentValue)
-          }
-
-          // item         ------------
-          // currentValue                -----------
-          if (currentValue.start.isAfter(item.end)) {
-            result.push(item)
-
-            // result.push(currentValue)
-          }
-
-          // item                         ------------
-          // currentValue  -----------
-          if (currentValue.end.isBefore(item.start)) {
-            result.push(item)
-
-            // result.push(currentValue)
-          }
-
-      } else {
-        result.push(item)
-      }
-      
-
-      
-
-    })
-
-    result.push(currentValue)
-
-    return result
-  }
-
-
-  const splitData = itemTimes.reduce(reducer)
-  
-  console.log("")
-  console.log("---> reduce result: ")
-  console.log(splitData)
-  
-  return splitData
-}
